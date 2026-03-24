@@ -2,10 +2,8 @@ from typing import Literal, Dict, Union
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_openai.embeddings import OpenAIEmbeddings
 
+from models.core import EmbeddingProvider
 from config.settings import settings
-
-
-EmbeddingProvider = Literal["openai", "huggingface"]
 
 
 class Embedding:

@@ -1,11 +1,12 @@
+from uuid import UUID
 from core.chunker import chunker
 from core.store import vectorstore
-from core.utils import generate_doc_id, sanitize_filename
 from models.nodes import IngestDocument
 from repository.connection import pg_engine
 
 
 async def run_ingestion(
+    doc_id: UUID,
     project_id: str,
     agent_id: str | None,
     data: IngestDocument
@@ -15,12 +16,7 @@ async def run_ingestion(
       Safe to call multiple times for the same doc_id — deletes old chunks first.
       Marks the job 'failed' in doc_ingestion_jobs if any step raises.
     """
-
     try:
-        # Generate document id based on the filename and project namespace
-        modified_filename = sanitize_filename(data.filename)
-        doc_id = generate_doc_id(project_id, modified_filename)
-
         # Initialize Vector Store
         store = vectorstore.get_store(
             pg_engine=pg_engine,

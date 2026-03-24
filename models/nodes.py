@@ -1,3 +1,4 @@
+from uuid import UUID
 from models.core import Category
 from pydantic import BaseModel
 from pydantic.types import Literal
@@ -11,4 +12,5 @@ class IngestDocument(BaseModel):
 
 
 class IngestDocumentResponse(BaseModel):
+    doc_id: UUID
     status: Literal["processing"] = "processing"
