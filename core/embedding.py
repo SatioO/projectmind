@@ -1,5 +1,4 @@
 from typing import Literal, Dict, Union
-
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_openai.embeddings import OpenAIEmbeddings
 

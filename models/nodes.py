@@ -1,7 +1,6 @@
+from models.core import Category
 from pydantic import BaseModel
 from pydantic.types import Literal
-
-Category = Literal["prd", "arch", "code", "tasks", "ops"]
 
 
 class IngestDocument(BaseModel):

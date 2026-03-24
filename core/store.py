@@ -2,7 +2,7 @@ from typing import Dict
 from langchain_postgres import PGVectorStore
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from models.nodes import Category
+from models.core import Category
 from core.embedding import embedding
 from config.settings import settings
 

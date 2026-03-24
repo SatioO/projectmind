@@ -1,5 +1,8 @@
-from unicodedata import category
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.sql.sqltypes import TIMESTAMP
+from sqlalchemy.sql import func
 from sqlalchemy import (
     Column,
     Text,
@@ -8,12 +11,10 @@ from sqlalchemy import (
     Index,
     text,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import UUID, ENUM
-from sqlalchemy.sql.sqltypes import TIMESTAMP
-from sqlalchemy.sql import func
-from repository.connection import Base, get_db_session
+
 from models.nodes import IngestDocument
+from core.utils import sanitize_filename
+from repository.connection import Base, get_db_session
 
 # --- ENUMS(must match Postgres enums) - --
 doc_category_enum = ENUM(
@@ -132,7 +133,11 @@ class IngestionRepository:
     async def ingest_document(self, project_id: str, agent_id: str, data: IngestDocument):
         try:
             ingestion_job = DocIngestionJob(
-                project_id=project_id, agent_id=agent_id, category=data.category, scope="project", filename=data.filename.lower().replace(" ", "_"), chunks_total=20)
+                project_id=project_id,
+                agent_id=agent_id,
+                category=data.category,
+                scope="project",
+                filename=sanitize_filename(filename=data.filename))
             self.session.add(ingestion_job)
             await self.session.commit()
         except:
