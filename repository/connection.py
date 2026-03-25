@@ -14,25 +14,26 @@ engine: AsyncEngine | None = None
 async def init_db() -> None:
     global engine
     engine = create_async_engine(
-        settings.postgres_dsn_sqlalchemy,
+        settings.postgres_dsn,
         pool_size=2,
         max_overflow=8,
         pool_pre_ping=True,
-        connect_args={"application_name": "graphmind"},
     )
     logger.info("Database engine initialized")
 
 
 async def get_db_conn() -> AsyncGenerator[AsyncConnection, None]:
     if engine is None:
-        raise RuntimeError("Database engine is not initialised — call init_db() on startup")
+        raise RuntimeError(
+            "Database engine is not initialised — call init_db() on startup")
     async with engine.connect() as conn:
         yield conn
 
 
 async def check_db() -> None:
     if engine is None:
-        raise RuntimeError("Database engine is not initialised — call init_db() on startup")
+        raise RuntimeError(
+            "Database engine is not initialised — call init_db() on startup")
     async with engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
     logger.info("Database health check passed")

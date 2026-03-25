@@ -19,7 +19,7 @@ class IngestionJob:
     created_at: datetime
 
 
-class IngestionRepository:
+class IngestionJobRepository:
     def __init__(self, conn: AsyncConnection = Depends(get_db_conn)) -> None:
         self.conn = conn
 
@@ -36,6 +36,12 @@ class IngestionRepository:
                 INSERT INTO doc_ingestion_jobs
                     (doc_id, project_id, agent_id, category, scope, filename)
                 VALUES (:doc_id, :project_id, :agent_id, :category, :scope, :filename)
+                ON CONFLICT (doc_id) DO UPDATE SET
+                    status       = 'processing',
+                    chunks_total = NULL,
+                    chunks_done  = 0,
+                    error        = NULL,
+                    updated_at   = now()
                 RETURNING id, doc_id, status, created_at
             """),
             {
@@ -51,9 +57,6 @@ class IngestionRepository:
         row = result.fetchone()
         return IngestionJob(id=row.id, doc_id=row.doc_id, status=row.status, created_at=row.created_at)
 
-
-# --- Standalone helpers used by background tasks (outside request scope) ---
-
 async def mark_job_failed(
     conn: AsyncConnection,
     doc_id: str,
@@ -62,13 +65,12 @@ async def mark_job_failed(
     await conn.execute(
         text("""
             UPDATE doc_ingestion_jobs
-               SET status = 'failed', error = :error, updated_at = now()
-             WHERE doc_id = :doc_id
+            SET status = 'failed', error = :error, updated_at = now()
+            WHERE doc_id = :doc_id
         """),
         {"error": error, "doc_id": doc_id},
     )
     await conn.commit()
-
 
 async def mark_job_done(
     conn: AsyncConnection,
@@ -78,11 +80,11 @@ async def mark_job_done(
     await conn.execute(
         text("""
             UPDATE doc_ingestion_jobs
-               SET status = 'done',
-                   chunks_total = :chunks_total,
-                   chunks_done  = :chunks_total,
-                   updated_at   = now()
-             WHERE doc_id = :doc_id
+            SET status = 'done',
+                chunks_total = :chunks_total,
+                chunks_done  = :chunks_total,
+                updated_at   = now()
+            WHERE doc_id = :doc_id
         """),
         {"chunks_total": chunks_total, "doc_id": doc_id},
     )
