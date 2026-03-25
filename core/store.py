@@ -1,7 +1,7 @@
 import asyncio
 from typing import Dict
 
-from langchain_postgres import PGVectorStore
+from langchain_postgres import PGEngine, PGVectorStore
 
 from models.core import Category
 from core.embedding import embedding
@@ -15,6 +15,7 @@ class VectorStore:
         self._embedding_model = embedding.get_embedding_model(
             provider=settings.embedding_provider
         )
+        self._engine = PGEngine.from_connection_string(settings.postgres_dsn)
 
     def _get_table_name(self, category: Category) -> str:
         return f"rag_{category}_chunks"
@@ -34,7 +35,7 @@ class VectorStore:
                 return self._stores[category]
 
             store = await PGVectorStore.create(
-                connection=settings.postgres_dsn,
+                engine=self._engine,
                 table_name=self._get_table_name(category),
                 embedding_service=self._embedding_model,
             )
