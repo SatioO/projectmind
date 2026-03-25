@@ -2140,6 +2140,9 @@ wheels = [
 binary = [
     { name = "psycopg-binary", marker = "implementation_name != 'pypy'" },
 ]
+pool = [
+    { name = "psycopg-pool" },
+]
 
 [[package]]
 name = "psycopg-binary"
@@ -2381,7 +2384,7 @@ dependencies = [
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-huggingface" },
     { name = "llama-index-embeddings-openai" },
-    { name = "sqlalchemy" },
+    { name = "psycopg", extra = ["binary", "pool"] },
     { name = "uuid" },
 ]
 
@@ -2400,7 +2403,7 @@ requires-dist = [
     { name = "llama-index-core", specifier = ">=0.14.18" },
     { name = "llama-index-embeddings-huggingface", specifier = ">=0.7.0" },
     { name = "llama-index-embeddings-openai", specifier = ">=0.6.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.48" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.1" },
     { name = "uuid", specifier = ">=1.30" },
 ]
 

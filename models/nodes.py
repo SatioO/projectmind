@@ -1,7 +1,7 @@
+from typing import Literal
 from uuid import UUID
 from models.core import Category
 from pydantic import BaseModel
-from pydantic.types import Literal
 
 
 class IngestDocument(BaseModel):
