@@ -1,57 +1,23 @@
 import asyncio
-import json
-from typing import Dict, List
+from typing import Dict
 
-from langchain_core.documents import Document
+from langchain_postgres import PGEngine, PGVectorStore
 
 from models.core import Category
 from core.embedding import embedding
 from config.settings import settings
-from repository import connection as db
-
-
-class CategoryStore:
-    """Direct psycopg3-backed vector store for a single document category."""
-
-    def __init__(self, category: Category, embedding_model) -> None:
-        self._table = f"rag_{category}_chunks"
-        self._embedding_model = embedding_model
-
-    async def add_documents(self, documents: List[Document]) -> None:
-        if not documents:
-            return
-
-        texts = [doc.page_content for doc in documents]
-        vectors = await self._embedding_model.aembed_documents(texts)
-
-        async with db.pg_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                for doc, vec in zip(documents, vectors):
-                    meta = dict(doc.metadata)
-                    doc_id = meta.pop("doc_id", None)
-                    project_id = meta.pop("project_id", None)
-                    agent_id = meta.pop("agent_id", None)
-                    meta.pop("category", None)
-                    vec_str = "[" + ",".join(str(v) for v in vec) + "]"
-
-                    await cur.execute(
-                        f"INSERT INTO {self._table}"
-                        " (doc_id, project_id, agent_id, content, metadata, embedding)"
-                        " VALUES (%s, %s, %s, %s, %s, %s::vector)",
-                        (doc_id, project_id, agent_id, doc.page_content,
-                         json.dumps(meta), vec_str),
-                    )
 
 
 class VectorStore:
     def __init__(self) -> None:
-        self._stores: Dict[Category, CategoryStore] = {}
+        self._stores: Dict[Category, PGVectorStore] = {}
         self._lock = asyncio.Lock()
         self._embedding_model = embedding.get_embedding_model(
             provider=settings.embedding_provider
         )
+        self._engine = PGEngine.from_connection_string(settings.postgres_dsn_sqlalchemy)
 
-    async def get_store(self, category: Category) -> CategoryStore:
+    async def get_store(self, category: Category) -> PGVectorStore:
         if settings.postgres_plugin != "pgvector":
             raise NotImplementedError(f"{settings.postgres_plugin} is not implemented")
 
@@ -62,9 +28,15 @@ class VectorStore:
             if category in self._stores:
                 return self._stores[category]
 
-            self._stores[category] = CategoryStore(
-                category=category,
-                embedding_model=self._embedding_model,
+            self._stores[category] = await PGVectorStore.create(
+                engine=self._engine,
+                table_name=f"rag_{category}_chunks",
+                embedding_service=self._embedding_model,
+                id_column="id",
+                content_column="content",
+                embedding_column="embedding",
+                metadata_columns=["doc_id", "project_id", "agent_id"],
+                metadata_json_column="metadata",
             )
 
         return self._stores[category]
