@@ -12,7 +12,6 @@ dependencies = [
     "langchain>=1.2.13",
     "langchain-experimental>=0.4.1",
     "langchain-openai>=1.1.12",
-    "langchain-postgres>=0.0.17",
     "langchain-text-splitters>=1.1.1",
     "llama-index>=0.14.18",
     "llama-index-core>=0.14.18",

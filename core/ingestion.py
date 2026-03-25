@@ -38,6 +38,7 @@ async def run_ingestion(
 
             logger.info("doc_id=%s chunks=%d", doc_id, len(semantic_chunks))
 
+            await store.add_documents(semantic_chunks)
             await mark_job_done(conn, doc_id, chunks_total=len(semantic_chunks))
 
         except Exception as exc:
