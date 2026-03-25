@@ -15,9 +15,14 @@ async def init_db() -> None:
     global engine
     engine = create_async_engine(
         settings.postgres_dsn,
-        pool_size=2,
-        max_overflow=8,
+        pool_size=5,
+        max_overflow=10,
         pool_pre_ping=True,
+        pool_recycle=1800,
+        connect_args={
+            "command_timeout": 30,
+            "server_settings": {"application_name": "rag-pipeline"},
+        },
     )
     logger.info("Database engine initialized")
 

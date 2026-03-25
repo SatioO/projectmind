@@ -6,7 +6,6 @@ from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from core.utils import sanitize_filename
 from models.nodes import IngestDocument
 from repository.connection import get_db_conn
 
@@ -28,6 +27,7 @@ class IngestionJobRepository:
         doc_id: str,
         project_id: str,
         agent_id: str | None,
+        filename: str,
         data: IngestDocument,
     ) -> IngestionJob:
         scope = "agent" if agent_id else "project"
@@ -50,7 +50,7 @@ class IngestionJobRepository:
                 "agent_id": agent_id,
                 "category": data.category,
                 "scope": scope,
-                "filename": sanitize_filename(filename=data.filename),
+                "filename": filename,
             },
         )
         await self.conn.commit()
