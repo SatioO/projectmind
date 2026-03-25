@@ -1,6 +1,5 @@
 from typing import Dict
 from langchain_postgres import PGVectorStore
-from sqlalchemy.ext.asyncio import AsyncEngine
 
 from models.core import Category
 from core.embedding import embedding
@@ -17,15 +16,7 @@ class VectorStore:
     def _get_table_name(self, category: Category) -> str:
         return f"rag_{category}_chunks"
 
-    async def get_store(
-        self,
-        pg_engine: AsyncEngine,
-        category: Category,
-    ) -> PGVectorStore:
-        """
-        Returns a cached PGVectorStore per category.
-        Lazily initializes on first access.
-        """
+    async def get_store(self, category: Category) -> PGVectorStore:
         if settings.postgres_plugin != "pgvector":
             raise NotImplementedError(
                 f"{settings.postgres_plugin} is not implemented"
@@ -37,7 +28,7 @@ class VectorStore:
         table_name = self._get_table_name(category)
 
         store = await PGVectorStore.create(
-            engine=pg_engine,
+            connection=settings.postgres_dsn,
             table_name=table_name,
             embedding_service=self._embedding_model,
         )

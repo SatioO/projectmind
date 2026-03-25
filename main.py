@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from routes import ingestion
-from repository.connection import check_db, close_db
+from repository.connection import check_db, close_db, init_db
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +17,7 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup():
+    await init_db()
     await check_db()
 
 

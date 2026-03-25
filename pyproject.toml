@@ -18,6 +18,6 @@ dependencies = [
     "llama-index-core>=0.14.18",
     "llama-index-embeddings-huggingface>=0.7.0",
     "llama-index-embeddings-openai>=0.6.0",
-    "sqlalchemy>=2.0.48",
+    "psycopg[binary,pool]>=3.1",
     "uuid>=1.30",
 ]

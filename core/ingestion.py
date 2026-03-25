@@ -2,7 +2,6 @@ from uuid import UUID
 from core.chunker import chunker
 from core.store import vectorstore
 from models.nodes import IngestDocument
-from repository.connection import pg_engine
 
 
 async def run_ingestion(
@@ -18,10 +17,7 @@ async def run_ingestion(
     """
     try:
         # Initialize Vector Store
-        store = vectorstore.get_store(
-            pg_engine=pg_engine,
-            category=data.category
-        )
+        store = await vectorstore.get_store(category=data.category)
 
         semantic_chunks = chunker.split_documents([data.content])
         print(f"Total chunks: {len(semantic_chunks)} \n\n")
