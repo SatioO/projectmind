@@ -10,6 +10,12 @@ logger = logging.getLogger(__name__)
 
 pg_pool: AsyncConnectionPool | None = None
 
+async_session_maker = async_sessionmaker(
+    bind=pg_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
 
 def _on_reconnect_failed(pool: AsyncConnectionPool) -> None:
     """Called by the pool when it cannot re-establish a lost connection."""
