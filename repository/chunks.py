@@ -31,8 +31,8 @@ async def insert_chunks(
     """Batch-insert chunks with pre-computed embeddings.
 
     Uses executemany — asyncpg prepares the statement once and pipelines
-    all rows in a single round-trip. The ::vector and ::jsonb casts are
-    handled by PostgreSQL at execution time.
+    all rows in a single round-trip. CAST(...) is used instead of ::type
+    syntax because SQLAlchemy text() parses :: as part of a named param.
 
     Table name is interpolated from category (Literal type — not user input).
     All other values use bound parameters.
@@ -59,7 +59,7 @@ async def insert_chunks(
             INSERT INTO rag_{category}_chunks
                 (doc_id, project_id, agent_id, content, metadata, embedding)
             VALUES
-                (:doc_id, :project_id, :agent_id, :content, :metadata::jsonb, :embedding::vector)
+                (:doc_id, :project_id, :agent_id, :content, CAST(:metadata AS jsonb), CAST(:embedding AS vector))
         """),
         rows,
     )
