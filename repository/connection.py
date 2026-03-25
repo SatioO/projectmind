@@ -10,12 +10,6 @@ logger = logging.getLogger(__name__)
 
 pg_pool: AsyncConnectionPool | None = None
 
-async_session_maker = async_sessionmaker(
-    bind=pg_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
 
 def _on_reconnect_failed(pool: AsyncConnectionPool) -> None:
     """Called by the pool when it cannot re-establish a lost connection."""
@@ -49,14 +43,16 @@ async def init_db() -> None:
 
 async def get_db_conn() -> AsyncGenerator[psycopg.AsyncConnection, None]:
     if pg_pool is None:
-        raise RuntimeError("Database pool is not initialised — call init_db() on startup")
+        raise RuntimeError(
+            "Database pool is not initialised — call init_db() on startup")
     async with pg_pool.connection() as conn:
         yield conn
 
 
 async def check_db() -> None:
     if pg_pool is None:
-        raise RuntimeError("Database pool is not initialised — call init_db() on startup")
+        raise RuntimeError(
+            "Database pool is not initialised — call init_db() on startup")
     try:
         async with pg_pool.connection() as conn:
             await conn.execute("SELECT 1")

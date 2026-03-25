@@ -19,7 +19,7 @@ class IngestionJob:
     created_at: datetime
 
 
-class IngestionRepository:
+class IngestionJobRepository:
     def __init__(self, conn: psycopg.AsyncConnection = Depends(get_db_conn)):
         self.conn = conn
 
