@@ -1,6 +1,6 @@
 from typing import Literal
-from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from models.core import DocumentChunkingStrategy
 
 
 class Settings(BaseSettings):
@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # === Chunking ===
+    chunking_strategy:  DocumentChunkingStrategy = "character_based_fixed_size"
     embedding_provider: Literal["huggingface", "open_ai"] = "huggingface"
     # embedding_model: str = "text-embedding-3-small"
     embedding_model: str = "BAAI/bge-base-en-v1.5"

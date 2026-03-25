@@ -1,9 +1,8 @@
-from typing import Literal, Dict, Union
+from config.settings import settings
+from models.core import EmbeddingProvider
+from typing import Dict, Union
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_openai.embeddings import OpenAIEmbeddings
-
-from models.core import EmbeddingProvider
-from config.settings import settings
 
 
 class Embedding:
