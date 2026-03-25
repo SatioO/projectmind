@@ -1,9 +1,11 @@
 import logging
 
+from config.settings import settings
 from core.chunker import chunker
-from core.store import vectorstore
+from core.embedding import embedding
 from models.nodes import IngestDocument
 from repository import connection as db
+from repository.chunks import delete_chunks, insert_chunks
 from repository.Ingestion import mark_job_done, mark_job_failed
 
 logger = logging.getLogger(__name__)
@@ -17,28 +19,36 @@ async def run_ingestion(
 ) -> None:
     """Run the full ingestion pipeline for a single document.
 
-    Safe to call multiple times for the same doc_id — deletes old chunks first.
-    Marks the job 'failed' in doc_ingestion_jobs if any step raises.
+    Embedding generation happens before the connection is opened so the
+    pool slot is not held idle during model inference.
+
+    delete → insert → mark_done all run on the same connection — fully
+    atomic. On any failure the transaction rolls back, old chunks are
+    preserved, and the job is marked failed.
     """
+    embedding_model = embedding.get_embedding_model(provider=settings.embedding_provider)
+
+    chunks = chunker.split_documents(
+        data.content,
+        metadata={
+            "doc_id": doc_id,
+            "project_id": project_id,
+            "agent_id": agent_id,
+            "category": data.category,
+            **data.metadata,
+        },
+    )
+    logger.info("doc_id=%s chunks=%d", doc_id, len(chunks))
+
+    embeddings = await embedding_model.aembed_documents(
+        [chunk.page_content for chunk in chunks]
+    )
+
     async with db.engine.connect() as conn:
         try:
-            store = await vectorstore.get_store(category=data.category)
-
-            semantic_chunks = chunker.split_documents(
-                data.content,
-                metadata={
-                    "doc_id": doc_id,
-                    "project_id": project_id,
-                    "agent_id": agent_id,
-                    "category": data.category,
-                    **data.metadata,
-                },
-            )
-
-            logger.info("doc_id=%s chunks=%d", doc_id, len(semantic_chunks))
-
-            await store.aadd_documents(semantic_chunks)
-            await mark_job_done(conn, doc_id, chunks_total=len(semantic_chunks))
+            await delete_chunks(conn, data.category, doc_id)
+            await insert_chunks(conn, data.category, chunks, embeddings)
+            await mark_job_done(conn, doc_id, chunks_total=len(chunks))
             await conn.commit()
 
         except Exception as exc:
