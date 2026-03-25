@@ -53,6 +53,7 @@ async def run_ingestion(
 
         except Exception as exc:
             logger.exception("Ingestion failed for doc_id=%s", doc_id)
+            await conn.rollback()  # clear aborted transaction before issuing new query
             await mark_job_failed(conn, doc_id, error=str(exc))
             await conn.commit()
             raise
