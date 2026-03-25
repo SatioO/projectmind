@@ -29,6 +29,12 @@ SessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
+async_session_maker = async_sessionmaker(
+    bind=pg_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:

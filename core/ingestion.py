@@ -2,14 +2,15 @@ from uuid import UUID
 from core.chunker import chunker
 from core.store import vectorstore
 from models.nodes import IngestDocument
-from repository.connection import pg_engine
+from repository.Ingestion import IngestionJobRepository
+from repository.connection import async_session_maker, pg_engine
 
 
 async def run_ingestion(
-    doc_id: UUID,
+    doc_id: str,
     project_id: str,
     agent_id: str | None,
-    data: IngestDocument
+    document: IngestDocument
 ):
     """Run the full ingestion pipeline for a single document.
 
@@ -18,17 +19,20 @@ async def run_ingestion(
     """
     try:
         # Initialize Vector Store
-        store = vectorstore.get_store(
+        store = await vectorstore.get_store(
             pg_engine=pg_engine,
-            category=data.category
+            category=document.category
         )
 
-        semantic_chunks = chunker.split_documents([data.content])
+        semantic_chunks = chunker.split_documents([document.content])
         print(f"Total chunks: {len(semantic_chunks)} \n\n")
 
         for semantic_chunk in semantic_chunks:
             print(f"====== Document Chunk: {doc_id} =====")
             print(semantic_chunk.page_content)
+
+        async with async_session_maker() as session:
+            repo = IngestionJobRepository(session)
 
     except:
         raise

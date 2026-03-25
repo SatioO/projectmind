@@ -1,6 +1,8 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.dialects.postgresql import insert, ENUM, UUID
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql import func
 from sqlalchemy import (
@@ -47,6 +49,7 @@ class DocIngestionJob(Base):
     )
 
     # --- Core Identity ---
+    doc_id = Column(Text, nullable=False, unique=True)
     project_id = Column(Text, nullable=False)
     agent_id = Column(Text, nullable=True)
 
@@ -126,22 +129,44 @@ class DocIngestionJob(Base):
     )
 
 
-class IngestionRepository:
+class IngestionJobRepository:
     def __init__(self, session: AsyncSession = Depends(get_db_session)):
         self.session = session
 
-    async def ingest_document(self, project_id: str, agent_id: str, data: IngestDocument):
+    async def ingest_job(self, doc_id: str, project_id: str, agent_id: str, data: IngestDocument) -> None:
         try:
-            ingestion_job = DocIngestionJob(
+            scope = "agent" if agent_id else "project"
+            filename = sanitize_filename(filename=data.filename)
+            stmt = insert(DocIngestionJob).values(
+                doc_id=doc_id,
                 project_id=project_id,
                 agent_id=agent_id,
                 category=data.category,
-                scope="project",
-                filename=sanitize_filename(filename=data.filename))
-            self.session.add(ingestion_job)
+                scope=scope,
+                filename=filename,
+            )
+
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["doc_id"],
+                set_={
+                    "status": "processing",
+                    "chunks_total": None,
+                    "chunks_done": 0,
+                    "error": None,
+                    "updated_at": func.now(),
+                }
+            )
+
+            await self.session.execute(stmt)
             await self.session.commit()
-        except:
-            self.session.rollback()
-            raise
-        finally:
-            self.session.close()
+
+        except IntegrityError as e:
+            await self.session.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="document already ingested"
+            )
+
+        except Exception as e:
+            await self.session.rollback()
+            raise e
