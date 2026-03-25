@@ -24,6 +24,7 @@ class IngestionService:
         doc_id = str(generate_doc_id(project_id, modified_filename))
 
         await self.ingestion_repo.create_job(doc_id, project_id, agent_id, modified_filename, data)
+        await self.ingestion_repo.commit()
 
         background_tasks.add_task(
             run_ingestion,

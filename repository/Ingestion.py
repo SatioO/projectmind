@@ -53,9 +53,11 @@ class IngestionJobRepository:
                 "filename": filename,
             },
         )
-        await self.conn.commit()
         row = result.fetchone()
         return IngestionJob(id=row.id, doc_id=row.doc_id, status=row.status, created_at=row.created_at)
+
+    async def commit(self) -> None:
+        await self.conn.commit()
 
 async def mark_job_failed(
     conn: AsyncConnection,
@@ -70,7 +72,6 @@ async def mark_job_failed(
         """),
         {"error": error, "doc_id": doc_id},
     )
-    await conn.commit()
 
 async def mark_job_done(
     conn: AsyncConnection,
@@ -88,4 +89,3 @@ async def mark_job_done(
         """),
         {"chunks_total": chunks_total, "doc_id": doc_id},
     )
-    await conn.commit()
