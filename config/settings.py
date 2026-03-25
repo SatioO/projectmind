@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     @property
     def postgres_dsn_sqlalchemy(self) -> str:
         """SQLAlchemy-compatible DSN for PGEngine (psycopg3 dialect)."""
-        return self.postgres_dsn.replace("postgresql://", "postgresql+psycopg://", 1)
+        return self.postgres_dsn.replace("postgresql://", "postgresql+asyncpg://", 1)
     # TODO: bring in pgsearch support for BM25 search capabilities
     postgres_plugin: Literal["pgvector", "pgsearch"] = "pgvector"
     log_level: str = "INFO"

@@ -5,12 +5,12 @@ from fastapi.background import BackgroundTasks
 
 from core.ingestion import run_ingestion
 from models.nodes import IngestDocument, IngestDocumentResponse
-from repository.Ingestion import IngestionJobRepository
+from repository.Ingestion import IngestionRepository
 from core.utils import generate_doc_id, sanitize_filename
 
 
 class IngestionService:
-    def __init__(self, ingestion_repo: IngestionJobRepository = Depends(IngestionJobRepository)) -> None:
+    def __init__(self, ingestion_repo: IngestionRepository = Depends(IngestionRepository)) -> None:
         self.ingestion_repo = ingestion_repo
 
     async def ingest_document(
