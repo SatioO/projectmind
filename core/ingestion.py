@@ -4,7 +4,7 @@ from uuid import UUID
 from core.chunker import chunker
 from core.store import vectorstore
 from models.nodes import IngestDocument
-from repository.connection import pg_pool
+from repository import connection as db
 from repository.Ingestion import mark_job_done, mark_job_failed
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ async def run_ingestion(
     Safe to call multiple times for the same doc_id — deletes old chunks first.
     Marks the job 'failed' in doc_ingestion_jobs if any step raises.
     """
-    async with pg_pool.connection() as conn:
+    async with db.pg_pool.connection() as conn:
         try:
             store = await vectorstore.get_store(category=data.category)
 
