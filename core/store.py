@@ -1,4 +1,6 @@
+import asyncio
 from typing import Dict
+
 from langchain_postgres import PGVectorStore
 
 from models.core import Category
@@ -8,7 +10,8 @@ from config.settings import settings
 
 class VectorStore:
     def __init__(self) -> None:
-        self._stores: Dict[str, PGVectorStore] = {}
+        self._stores: Dict[Category, PGVectorStore] = {}
+        self._lock = asyncio.Lock()
         self._embedding_model = embedding.get_embedding_model(
             provider=settings.embedding_provider
         )
@@ -25,16 +28,19 @@ class VectorStore:
         if category in self._stores:
             return self._stores[category]
 
-        table_name = self._get_table_name(category)
+        async with self._lock:
+            # Re-check inside the lock to avoid double initialisation
+            if category in self._stores:
+                return self._stores[category]
 
-        store = await PGVectorStore.create(
-            connection=settings.postgres_dsn,
-            table_name=table_name,
-            embedding_service=self._embedding_model,
-        )
+            store = await PGVectorStore.create(
+                connection=settings.postgres_dsn,
+                table_name=self._get_table_name(category),
+                embedding_service=self._embedding_model,
+            )
+            self._stores[category] = store
 
-        self._stores[category] = store
-        return store
+        return self._stores[category]
 
 
 vectorstore = VectorStore()
