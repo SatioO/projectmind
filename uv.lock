@@ -2140,9 +2140,6 @@ wheels = [
 binary = [
     { name = "psycopg-binary", marker = "implementation_name != 'pypy'" },
 ]
-pool = [
-    { name = "psycopg-pool" },
-]
 
 [[package]]
 name = "psycopg-binary"
@@ -2371,6 +2368,7 @@ name = "rag-pipeline"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "asyncpg" },
     { name = "dotenv" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastembed" },
@@ -2384,12 +2382,13 @@ dependencies = [
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-huggingface" },
     { name = "llama-index-embeddings-openai" },
-    { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "uuid" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncpg", specifier = ">=0.30" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.135.1" },
     { name = "fastembed", specifier = ">=0.8.0" },
@@ -2403,7 +2402,7 @@ requires-dist = [
     { name = "llama-index-core", specifier = ">=0.14.18" },
     { name = "llama-index-embeddings-huggingface", specifier = ">=0.7.0" },
     { name = "llama-index-embeddings-openai", specifier = ">=0.6.0" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.1" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "uuid", specifier = ">=1.30" },
 ]
 

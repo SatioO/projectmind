@@ -21,7 +21,7 @@ async def run_ingestion(
     Safe to call multiple times for the same doc_id — deletes old chunks first.
     Marks the job 'failed' in doc_ingestion_jobs if any step raises.
     """
-    async with db.pg_pool.connection() as conn:
+    async with db.engine.connect() as conn:
         try:
             store = await vectorstore.get_store(category=data.category)
 
@@ -38,6 +38,7 @@ async def run_ingestion(
 
             logger.info("doc_id=%s chunks=%d", doc_id, len(semantic_chunks))
 
+            await store.aadd_documents(semantic_chunks)
             await mark_job_done(conn, doc_id, chunks_total=len(semantic_chunks))
 
         except Exception as exc:

@@ -1,10 +1,11 @@
 from typing import Literal
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     # === POSTGRES ===
-    postgres_dsn: str = "postgresql://postgres:password@localhost:5432/graphmind"
+    postgres_dsn: str = "postgresql+asyncpg://postgres:password@localhost:5432/graphmind"
     # TODO: bring in pgsearch support for BM25 search capabilities
     postgres_plugin: Literal["pgvector", "pgsearch"] = "pgvector"
     log_level: str = "INFO"
