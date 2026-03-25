@@ -1,5 +1,4 @@
 import logging
-from uuid import UUID
 
 from core.chunker import chunker
 from core.store import vectorstore
@@ -40,8 +39,10 @@ async def run_ingestion(
 
             await store.aadd_documents(semantic_chunks)
             await mark_job_done(conn, doc_id, chunks_total=len(semantic_chunks))
+            await conn.commit()
 
         except Exception as exc:
             logger.exception("Ingestion failed for doc_id=%s", doc_id)
             await mark_job_failed(conn, doc_id, error=str(exc))
+            await conn.commit()
             raise
