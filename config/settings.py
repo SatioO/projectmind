@@ -1,6 +1,16 @@
 from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from models.core import DocumentChunkingStrategy
+
+from models.core import DocumentChunkingStrategy, EmbeddingModel
+
+CHUNK_SIZE_RECOMMENDATIONS = {
+    "text-embedding-ada-002": 500,      # OpenAI
+    "text-embedding-3-small": 512,      # OpenAI
+    "text-embedding-3-large": 1024,     # OpenAI
+    # "all-MiniLM-L6-v2": 256,            # Sentence Transformers
+    # "all-mpnet-base-v2": 384,           # Sentence Transformers
+    "BAAI/bge-base-en-v1.5": 512
+}
 
 
 class Settings(BaseSettings):
@@ -14,7 +24,7 @@ class Settings(BaseSettings):
     chunking_strategy:  DocumentChunkingStrategy = "character_based_fixed_size"
     embedding_provider: Literal["huggingface", "open_ai"] = "huggingface"
     # embedding_model: str = "text-embedding-3-small"
-    embedding_model: str = "BAAI/bge-base-en-v1.5"
+    embedding_model: EmbeddingModel = "BAAI/bge-base-en-v1.5"
     openai_api_key: str = ""          # Optional: required for openai models
     embedding_dimensions: int = 1536  # Optional: required for openai models
 
