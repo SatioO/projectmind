@@ -5,7 +5,7 @@
 
 ## Problem
 
-The current `_enrich_context` method stores 100-character previews of neighboring chunks (`next_chunk_preview`, `previous_chunk_preview`) in JSONB metadata at index time. This approach has three problems:
+The current `_enrich_context` method stores 100-character previews of neighboring chunks (`next_chunk_preview`, `prev_chunk_preview`) in JSONB metadata at index time. This approach has three problems:
 
 1. **Too short to be useful** — 100 chars is rarely meaningful context for long-form documents (5–50 pages).
 2. **Doesn't improve retrieval** — the embedding of the chunk still has no awareness of its neighbors; previews don't affect vector search ranking.
@@ -31,7 +31,7 @@ The `prev_chunk_preview` and `next_chunk_preview` metadata fields are removed. T
 
 **Promote `chunk_index` to an explicit column (`repository/chunks.py`):**
 
-Add `"chunk_index"` to `_EXPLICIT_COLUMNS` so it is written as a dedicated integer column rather than into the JSONB blob. Update the `INSERT` statement accordingly:
+Add `"chunk_index"` to `_EXPLICIT_COLUMNS` so it is written as a dedicated integer column rather than into the JSONB blob. Update the INSERT statement and the row-building dict in `insert_chunks`:
 
 ```sql
 INSERT INTO rag_{category}_chunks
@@ -40,13 +40,49 @@ VALUES
     (:doc_id, :project_id, :agent_id, :chunk_index, :content, CAST(:metadata AS jsonb), CAST(:embedding AS vector))
 ```
 
-**DB migration** — add to each `rag_{category}_chunks` table:
+The row dict construction must also include `chunk_index`:
+
+```python
+rows = [
+    {
+        "doc_id": chunk.metadata["doc_id"],
+        "project_id": chunk.metadata["project_id"],
+        "agent_id": chunk.metadata.get("agent_id"),
+        "chunk_index": chunk.metadata["chunk_index"],   # promoted from JSONB
+        "content": chunk.page_content,
+        "metadata": json.dumps(
+            {k: v for k, v in chunk.metadata.items() if k not in _EXPLICIT_COLUMNS}
+        ),
+        "embedding": str(embedding),
+    }
+    for chunk, embedding in zip(chunks, embeddings)
+]
+```
+
+**DB migration** — add to each `rag_{category}_chunks` table. Use a two-phase approach to handle existing rows safely:
+
 ```sql
-ALTER TABLE rag_{category}_chunks ADD COLUMN chunk_index INTEGER NOT NULL;
+-- Phase 1: add nullable with a temporary default for backfill
+ALTER TABLE rag_{category}_chunks ADD COLUMN chunk_index INTEGER DEFAULT 0;
+
+-- Phase 2: backfill existing rows using row_number() ordered by id within each doc
+UPDATE rag_{category}_chunks c
+SET chunk_index = sub.rn - 1
+FROM (
+    SELECT id, row_number() OVER (PARTITION BY doc_id ORDER BY id) AS rn
+    FROM rag_{category}_chunks
+) sub
+WHERE c.id = sub.id;
+
+-- Phase 3: enforce NOT NULL and drop temporary default
+ALTER TABLE rag_{category}_chunks ALTER COLUMN chunk_index SET NOT NULL;
+ALTER TABLE rag_{category}_chunks ALTER COLUMN chunk_index DROP DEFAULT;
+
+-- Phase 4: add the composite index
 CREATE INDEX ON rag_{category}_chunks (doc_id, chunk_index);
 ```
 
-The composite index `(doc_id, chunk_index)` makes neighbor lookups an index scan regardless of table size.
+The composite index `(doc_id, chunk_index)` makes neighbor lookups an index scan regardless of table size. Run this migration for each category: `prd`, `arch`, `code`, `tasks`, `ops`.
 
 ### Retrieval Layer
 
